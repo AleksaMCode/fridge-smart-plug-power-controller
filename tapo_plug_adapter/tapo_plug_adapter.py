@@ -1,6 +1,9 @@
 from tapo import ApiClient
 
+from logger import get_logger
 from settings import TAPO_EMAIL, TAPO_PASSWORD, TAPO_PLUG_IP
+
+logger = get_logger(__name__)
 
 
 class PlugAdapter:
@@ -13,9 +16,11 @@ class PlugAdapter:
     async def _init_device(self):
         if self._device is None:
             try:
+                logger.info(f"Connecting to smart plug device at {self._ip}")
                 self._device = await self._api_client.p110(self._ip)
             except Exception as e:
-                print(e)
+                logger.error(f"Failed to connect to smart plug device: {str(e)}")
+                raise
 
     async def turn_on(self):
         await self._init_device()
@@ -24,9 +29,9 @@ class PlugAdapter:
             if not info.device_on:
                 await self._device.on()
                 self._state = True
-                print(f"Device '{info.nickname}' turned ON")
+                logger.info(f"Device '{info.nickname}' turned ON")
             else:
-                print(f"Device '{info.nickname}' remains to be ON")
+                logger.info(f"Device '{info.nickname}' remains to be ON")
 
     async def turn_off(self):
         await self._init_device()
@@ -35,6 +40,6 @@ class PlugAdapter:
             if info.device_on:
                 await self._device.off()
                 self._state = False
-                print(f"Device '{info.nickname}' turned OFF")
+                logger.info(f"Device '{info.nickname}' turned OFF")
             else:
-                print(f"Device '{info.nickname}' remains to be OFF")
+                logger.info(f"Device '{info.nickname}' remains to be OFF")
