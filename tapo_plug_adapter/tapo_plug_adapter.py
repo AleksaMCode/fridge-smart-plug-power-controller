@@ -20,13 +20,21 @@ class PlugAdapter:
     async def turn_on(self):
         await self._init_device()
         if self._device:
-            await self._device.on()
-            self._state = True
-            print(f"Device at {self._ip} turned ON")
+            info = await self._device.get_device_info()
+            if not info.device_on:
+                await self._device.on()
+                self._state = True
+                print(f"Device '{info.nickname}' turned ON")
+            else:
+                print(f"Device '{info.nickname}' remains to be ON")
 
     async def turn_off(self):
         await self._init_device()
         if self._device:
-            await self._device.off()
-            self._state = False
-            print(f"Device at {self._ip} turned OFF")
+            info = await self._device.get_device_info()
+            if info.device_on:
+                await self._device.off()
+                self._state = False
+                print(f"Device '{info.nickname}' turned OFF")
+            else:
+                print(f"Device '{info.nickname}' remains to be OFF")
