@@ -14,16 +14,10 @@ weather_adapter = WeatherAdapter()
 logger = get_logger(__name__)
 
 
-async def init():
-    await plug_adapter.turn_off()
-
-
 async def control():
     """
     Checks temperature against its thresholds every 10 minutes and changes the power status if needed.
     """
-    await init()
-
     while True:
         logger.info("Checking threshold temperature.")
         current_temp = weather_adapter.get_current_temp()
