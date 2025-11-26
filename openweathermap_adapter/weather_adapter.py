@@ -21,6 +21,7 @@ class WeatherAdapter:
             return current_temperature
         except exceptions.NotFoundError as e:
             logger.error(f"Cannot find the city '{OMW_LOCATION}': {str(e)}")
+            raise
         except Exception as e:
             logger.error(
                 f"An error occurred during temperature fetching from OMW API: {str(e)}"
