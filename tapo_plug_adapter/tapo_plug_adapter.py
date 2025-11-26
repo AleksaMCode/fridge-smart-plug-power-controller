@@ -27,15 +27,24 @@ class PlugAdapter:
         try:
             logger.info(f"Connecting to smart plug device at {self._ip}")
             self._device = await self._api_client.p110(self._ip)
+            logger.info("Connected to smart plug device")
         except Exception as e:
             logger.error(f"Failed to connect to smart plug device: {str(e)}")
             raise
+
+    async def _reset_device_callback(self, retry_state):
+        """
+        Tenacity will call this before each retry when trying to switch state of the device.
+        """
+        logger.warning("Reinitializing device")
+        await self._init_device()
 
     @retry(
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=1, min=15, max=60),
         before=before_log(logger, logging.INFO),
         after=after_log(logger, logging.ERROR),
+        before_sleep=_reset_device_callback,
         reraise=True,
     )
     async def turn_on(self):
@@ -52,13 +61,13 @@ class PlugAdapter:
                 logger.info(f"Device '{info.nickname}' remains to be ON")
         except Exception as e:
             logger.error(f"Failed to interact with device: {str(e)}")
-            await self._init_device()
 
     @retry(
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=1, min=15, max=60),
         before=before_log(logger, logging.INFO),
         after=after_log(logger, logging.ERROR),
+        before_sleep=_reset_device_callback,
         reraise=True,
     )
     async def turn_off(self):
@@ -76,4 +85,3 @@ class PlugAdapter:
                     logger.info(f"Device '{info.nickname}' remains to be OFF")
         except Exception as e:
             logger.error(f"Failed to interact with device: {str(e)}")
-            await self._init_device()
