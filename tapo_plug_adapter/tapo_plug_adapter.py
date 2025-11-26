@@ -1,7 +1,7 @@
 import logging
 
 from tapo import ApiClient
-from tenacity import retry, stop_after_attempt, wait_exponential, before_log, after_log
+from tenacity import after_log, before_log, retry, stop_after_attempt, wait_exponential
 
 from logger import get_logger
 from settings import TAPO_EMAIL, TAPO_PASSWORD, TAPO_PLUG_IP
@@ -18,9 +18,7 @@ class PlugAdapter:
 
     @retry(
         stop=stop_after_attempt(5),
-        wait=wait_exponential(
-            multiplier=1, min=15, max=60
-        ),
+        wait=wait_exponential(multiplier=1, min=15, max=60),
         before=before_log(logger, logging.INFO),
         after=after_log(logger, logging.ERROR),
         reraise=True,
