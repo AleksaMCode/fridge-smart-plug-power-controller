@@ -24,17 +24,25 @@ class PlugAdapter:
         reraise=True,
     )
     async def _init_device(self):
-        if self._device is None:
-            try:
-                logger.info(f"Connecting to smart plug device at {self._ip}")
-                self._device = await self._api_client.p110(self._ip)
-            except Exception as e:
-                logger.error(f"Failed to connect to smart plug device: {str(e)}")
-                raise
+        try:
+            logger.info(f"Connecting to smart plug device at {self._ip}")
+            self._device = await self._api_client.p110(self._ip)
+        except Exception as e:
+            logger.error(f"Failed to connect to smart plug device: {str(e)}")
+            raise
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=15, max=60),
+        before=before_log(logger, logging.INFO),
+        after=after_log(logger, logging.ERROR),
+        reraise=True,
+    )
     async def turn_on(self):
-        await self._init_device()
-        if self._device:
+        if not self._device:
+            await self._init_device()
+
+        try:
             info = await self._device.get_device_info()
             if not info.device_on:
                 await self._device.on()
@@ -42,14 +50,30 @@ class PlugAdapter:
                 logger.info(f"Device '{info.nickname}' turned ON")
             else:
                 logger.info(f"Device '{info.nickname}' remains to be ON")
+        except Exception as e:
+            logger.error(f"Failed to interact with device: {str(e)}")
+            await self._init_device()
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=15, max=60),
+        before=before_log(logger, logging.INFO),
+        after=after_log(logger, logging.ERROR),
+        reraise=True,
+    )
     async def turn_off(self):
-        await self._init_device()
-        if self._device:
-            info = await self._device.get_device_info()
-            if info.device_on:
-                await self._device.off()
-                self._state = False
-                logger.info(f"Device '{info.nickname}' turned OFF")
-            else:
-                logger.info(f"Device '{info.nickname}' remains to be OFF")
+        if not self._device:
+            await self._init_device()
+
+        try:
+            if self._device:
+                info = await self._device.get_device_info()
+                if info.device_on:
+                    await self._device.off()
+                    self._state = False
+                    logger.info(f"Device '{info.nickname}' turned OFF")
+                else:
+                    logger.info(f"Device '{info.nickname}' remains to be OFF")
+        except Exception as e:
+            logger.error(f"Failed to interact with device: {str(e)}")
+            await self._init_device()
