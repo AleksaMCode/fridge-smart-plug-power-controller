@@ -1,4 +1,7 @@
+import logging
+
 from tapo import ApiClient
+from tenacity import retry, stop_after_attempt, wait_exponential, before_log, after_log
 
 from logger import get_logger
 from settings import TAPO_EMAIL, TAPO_PASSWORD, TAPO_PLUG_IP
@@ -13,6 +16,15 @@ class PlugAdapter:
         self._device = None
         self._state = False
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(
+            multiplier=1, min=15, max=60
+        ),
+        before=before_log(logger, logging.INFO),
+        after=after_log(logger, logging.ERROR),
+        reraise=True,
+    )
     async def _init_device(self):
         if self._device is None:
             try:
