@@ -2,7 +2,7 @@ from pyowm import OWM
 from pyowm.commons import exceptions
 
 from logger import get_logger
-from settings import OWM_LOCATION, OWM_API_KEY
+from settings import OWM_API_KEY, OWM_LOCATION
 
 logger = get_logger(__name__)
 
