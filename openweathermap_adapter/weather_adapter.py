@@ -1,5 +1,8 @@
+import logging
+
 from pyowm import OWM
 from pyowm.commons import exceptions
+from tenacity import after_log, before_log, retry, stop_after_attempt, wait_exponential
 
 from logger import get_logger
 from settings import OWM_API_KEY, OWM_LOCATION
@@ -12,6 +15,13 @@ class WeatherAdapter:
         self._owm = OWM(OWM_API_KEY)
         self._manager = self._owm.weather_manager()
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=15, max=60),
+        before=before_log(logger, logging.INFO),
+        after=after_log(logger, logging.ERROR),
+        reraise=True,
+    )
     def get_current_temp(self):
         logger.info("Fetching current temperature from OWM API.")
         try:
