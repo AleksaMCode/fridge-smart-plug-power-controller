@@ -1,2 +1,3 @@
 tapo
 pyowm
+tenacity

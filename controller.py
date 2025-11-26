@@ -26,9 +26,10 @@ async def control():
 
     while True:
         logger.info("Checking threshold temperature.")
-        if is_temperature_above_threshold(weather_adapter.get_current_temp()):
+        current_temp = weather_adapter.get_current_temp()
+        if is_temperature_above_threshold(current_temp):
             await plug_adapter.turn_on()
-        elif is_temperature_below_threshold(weather_adapter.get_current_temp()):
+        elif is_temperature_below_threshold(current_temp):
             await plug_adapter.turn_off()
         time.sleep(CONTROLLER_TIMEOUT)
 
