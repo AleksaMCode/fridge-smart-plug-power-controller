@@ -16,4 +16,4 @@ def is_temperature_below_threshold(temp: float) -> bool:
     :param temp: Current temperature outside.
     :return: True if the temperature is below the threshold otherwise False.
     """
-    return temp < TEMPERATURE_THRESHOLD - TEMPERATURE_DELTA
+    return temp <= TEMPERATURE_THRESHOLD - TEMPERATURE_DELTA
