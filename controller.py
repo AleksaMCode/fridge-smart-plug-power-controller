@@ -7,7 +7,6 @@ from settings import CONTROLLER_TIMEOUT
 from tapo_plug_adapter.tapo_plug_adapter import PlugAdapter
 from util import is_temperature_above_threshold, is_temperature_below_threshold
 
-
 logger = get_logger(__name__)
 
 
