@@ -3,7 +3,7 @@ import time
 
 from logger import get_logger
 from openweathermap_adapter.weather_adapter import WeatherAdapter
-from settings import CONTROLLER_TIMEOUT
+from settings import CONTROLLER_TIMEOUT, TEMPERATURE_DELTA, TEMPERATURE_THRESHOLD
 from tapo_plug_adapter.tapo_plug_adapter import PlugAdapter
 from util import is_temperature_above_threshold, is_temperature_below_threshold
 
@@ -22,8 +22,8 @@ async def control():
     weather_adapter = WeatherAdapter()
 
     while True:
-        # Create a new smart plug adapter each time. This is a #hack. Maybe fix in the future.
-        # See #24 for more info.
+        # Create a new smart plug adapter each time. This is a hack. #techdebt
+        # Maybe fix in the future. See #24 for more info.
         plug_adapter = PlugAdapter()
         logger.info("Checking threshold temperature.")
         current_temp = weather_adapter.get_current_temp()
@@ -31,6 +31,11 @@ async def control():
             await plug_adapter.turn_on()
         elif is_temperature_below_threshold(current_temp):
             await plug_adapter.turn_off()
+        else:
+            logger.info(
+                f"Controller is in an idle state. The temperature is between {TEMPERATURE_THRESHOLD - TEMPERATURE_DELTA} °C and {TEMPERATURE_THRESHOLD} °C"
+            )
+
         time.sleep(CONTROLLER_TIMEOUT)
 
 
