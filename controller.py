@@ -22,8 +22,8 @@ async def control():
     weather_adapter = WeatherAdapter()
 
     while True:
-        # Create a new smart plug adapter each time. This is a #hack. Maybe fix in the future.
-        # See #24 for more info.
+        # Create a new smart plug adapter each time. This is a hack. #techdebt
+        # Maybe fix in the future. See #24 for more info.
         plug_adapter = PlugAdapter()
         logger.info("Checking threshold temperature.")
         current_temp = weather_adapter.get_current_temp()
