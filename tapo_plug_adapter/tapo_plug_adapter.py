@@ -25,7 +25,7 @@ class PlugAdapter:
     )
     async def _init_device(self):
         try:
-            logger.info(f"Connecting to smart plug device at {self._ip}")
+            logger.info(f"🔌 Connecting to smart plug device at {self._ip}")
             self._device = await self._api_client.p110(self._ip)
             logger.info("Connected to smart plug device")
         except Exception as e:

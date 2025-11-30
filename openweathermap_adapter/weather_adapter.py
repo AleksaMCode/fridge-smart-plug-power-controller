@@ -23,11 +23,11 @@ class WeatherAdapter:
         reraise=True,
     )
     def get_current_temp(self):
-        logger.info("Fetching current temperature from OWM API.")
+        logger.info("🌡️ Fetching current temperature from OWM API.")
         try:
             current_weather = self._manager.weather_at_place(OWM_LOCATION).weather
             current_temperature = current_weather.temperature("celsius")["temp"]
-            logger.info(f"Current temperature: {current_temperature}")
+            logger.info(f"Current temperature: {current_temperature} °C")
             return current_temperature
         except exceptions.NotFoundError as e:
             logger.error(f"Cannot find the city '{OWM_LOCATION}': {str(e)}")
