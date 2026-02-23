@@ -7,6 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Python 3.13.7+](https://img.shields.io/badge/python-3.13.7+-blue.svg)](https://www.python.org/downloads/release/python-3137/)
+![](https://img.shields.io/github/v/release/AleksaMCode/fridge-smart-plug-power-controller/)
 ![Python tests](https://github.com/AleksaMCode/fridge-smart-plug-power-controller/actions/workflows/tests.yml/badge.svg?branch=master)
 
 A Python microservice that automatically controls an outdoor fridge based on ambient temperature. It turns the fridge ON when it's warm enough to need cooling, and turns it OFF when it's too cold; protecting both the appliance and the food inside.
