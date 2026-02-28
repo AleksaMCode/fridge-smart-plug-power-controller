@@ -38,7 +38,7 @@ A configurable hysteresis (`TEMPERATURE_DELTA`) avoids rapid on/off cycling when
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/AleksaMCode/fridge-smart-plug-power-controller.gits
    cd fridge-smart-plug-power-controller
    ```
 
