@@ -109,6 +109,77 @@ class ControllerFlowTests(unittest.IsolatedAsyncioTestCase):
         loop_adapter.turn_off.assert_not_awaited()
         loop_adapter.turn_on.assert_not_awaited()
 
+    async def test_control_uses_cached_temperature_when_fetch_fails_and_cache_is_fresh(
+        self,
+    ):
+        init_adapter = MagicMock()
+        init_adapter.turn_off = AsyncMock()
+
+        first_loop_adapter = MagicMock()
+        first_loop_adapter.turn_on = AsyncMock()
+        first_loop_adapter.turn_off = AsyncMock()
+
+        second_loop_adapter = MagicMock()
+        second_loop_adapter.turn_on = AsyncMock()
+        second_loop_adapter.turn_off = AsyncMock()
+
+        weather_adapter = MagicMock()
+        weather_adapter.get_current_temp.side_effect = [7.0, RuntimeError("OWM down")]
+
+        with patch.object(
+            controller,
+            "PlugAdapter",
+            side_effect=[init_adapter, first_loop_adapter, second_loop_adapter],
+        ), patch.object(
+            controller, "WeatherAdapter", return_value=weather_adapter
+        ), patch.object(
+            controller.time, "time", side_effect=[1000.0, 1010.0]
+        ), patch.object(
+            controller.time, "sleep", side_effect=[None, RuntimeError("stop loop")]
+        ):
+            with self.assertRaises(RuntimeError):
+                await controller.control()
+
+        first_loop_adapter.turn_on.assert_awaited_once()
+        second_loop_adapter.turn_on.assert_awaited_once()
+        second_loop_adapter.turn_off.assert_not_awaited()
+
+    async def test_control_enters_safe_mode_after_30_minutes_without_valid_data(self):
+        init_adapter = MagicMock()
+        init_adapter.turn_off = AsyncMock()
+
+        first_loop_adapter = MagicMock()
+        first_loop_adapter.turn_on = AsyncMock()
+        first_loop_adapter.turn_off = AsyncMock()
+
+        second_loop_adapter = MagicMock()
+        second_loop_adapter.turn_on = AsyncMock()
+        second_loop_adapter.turn_off = AsyncMock()
+
+        weather_adapter = MagicMock()
+        weather_adapter.get_current_temp.side_effect = [
+            RuntimeError("OWM down"),
+            RuntimeError("OWM still down"),
+        ]
+
+        with patch.object(
+            controller,
+            "PlugAdapter",
+            side_effect=[init_adapter, first_loop_adapter, second_loop_adapter],
+        ), patch.object(
+            controller, "WeatherAdapter", return_value=weather_adapter
+        ), patch.object(
+            controller.time, "time", side_effect=[1000.0, 2801.0]
+        ), patch.object(
+            controller.time, "sleep", side_effect=[None, RuntimeError("stop loop")]
+        ):
+            with self.assertRaises(RuntimeError):
+                await controller.control()
+
+        first_loop_adapter.turn_on.assert_not_awaited()
+        second_loop_adapter.turn_on.assert_awaited_once()
+        second_loop_adapter.turn_off.assert_not_awaited()
+
 
 if __name__ == "__main__":
     unittest.main()
