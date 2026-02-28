@@ -136,6 +136,8 @@ class ControllerFlowTests(unittest.IsolatedAsyncioTestCase):
             controller.time, "time", side_effect=[1000.0, 1010.0]
         ), patch.object(
             controller.time, "sleep", side_effect=[None, RuntimeError("stop loop")]
+        ), patch.object(
+            controller.logger, "disabled", True
         ):
             with self.assertRaises(RuntimeError):
                 await controller.control()
@@ -172,6 +174,8 @@ class ControllerFlowTests(unittest.IsolatedAsyncioTestCase):
             controller.time, "time", side_effect=[1000.0, 2801.0]
         ), patch.object(
             controller.time, "sleep", side_effect=[None, RuntimeError("stop loop")]
+        ), patch.object(
+            controller.logger, "disabled", True
         ):
             with self.assertRaises(RuntimeError):
                 await controller.control()
