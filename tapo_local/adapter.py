@@ -2,18 +2,19 @@ import logging
 from abc import ABC, abstractmethod
 
 from tapo import ApiClient
-
-from openweathermap.adapter import WeatherInterface
+from tapo.responses import T31XResult
 from tenacity import after_log, before_log, retry, stop_after_attempt, wait_exponential
 
 from logger import get_logger
-from settings import TAPO_EMAIL, TAPO_PASSWORD, TAPO_PLUG_IP
+from openweathermap.adapter import WeatherInterface
+from settings import TAPO_EMAIL, TAPO_PASSWORD
 
 logger = get_logger(__name__)
 
+
 class TapoDevice(ABC):
-    def __init__(self):
-        self._ip = TAPO_PLUG_IP
+    def __init__(self, ip: str):
+        self._ip = ip
         self._api_client = ApiClient(TAPO_EMAIL, TAPO_PASSWORD)
         self._device = None
         self._state = False
@@ -21,6 +22,7 @@ class TapoDevice(ABC):
     @abstractmethod
     async def _init_device(self):
         pass
+
 
 class PlugAdapter(TapoDevice):
     @retry(
@@ -94,7 +96,7 @@ class PlugAdapter(TapoDevice):
             logger.error(f"Failed to interact with device: {str(e)}")
 
 
-class HubAdapter(TapoDevice, WeatherInterface):
+class SensorAdapter(TapoDevice, WeatherInterface):
     @retry(
         stop=stop_after_attempt(10),
         wait=wait_exponential(multiplier=1, min=30, max=180),
@@ -105,11 +107,22 @@ class HubAdapter(TapoDevice, WeatherInterface):
     async def _init_device(self):
         try:
             logger.info(f"🔌 Connecting to hub device at {self._ip}")
-            hub = _device = await self._api_client.h100(self._ip)
-            self._device = hub.t310()
-            logger.info("Connected to smart plug device")
+            hub = await self._api_client.h100(self._ip)
+            # info = await hub.get_device_info()
+            # This doesn't seem to work:
+            self._device = await hub.t31x()
+            # Alternative approach:
+            logger.info(f"🔌 Connecting to temp. sensor device at {self._ip}")
+            child_device_list = await hub.get_child_device_list()
+            for child in child_device_list:
+                if isinstance(child, T31XResult):
+                    self._device = await hub.t31x(device_id=child.device_id)
+                    logger.info("Connected to temp. sensor device")
+            raise Exception(
+                "Failed to connect to temp. sensor device - no sensor children in the H100 hub."
+            )
         except Exception as e:
-            logger.error(f"Failed to connect to smart plug device: {str(e)}")
+            logger.error(f"Failed to connect to temp. sensor device: {str(e)}")
             raise
 
     @retry(
@@ -120,6 +133,9 @@ class HubAdapter(TapoDevice, WeatherInterface):
         reraise=True,
     )
     async def get_current_temp(self):
+        if not self._device:
+            await self._init_device()
+
         records = await self._device.get_temperature_humidity_records()
         # latest reading
         latest = records.records[-1]
