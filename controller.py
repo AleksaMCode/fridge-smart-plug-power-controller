@@ -3,9 +3,15 @@ import time
 from typing import Optional
 
 from logger import get_logger
-from openweathermap_adapter.weather_adapter import WeatherAdapter
-from settings import CONTROLLER_TIMEOUT, TEMPERATURE_DELTA, TEMPERATURE_THRESHOLD
-from tapo_plug_adapter.tapo_plug_adapter import PlugAdapter
+from openweathermap.adapter import WeatherAdapter
+from settings import (
+    CONTROLLER_TIMEOUT,
+    TAPO_HUB_IP,
+    TAPO_PLUG_IP,
+    TEMPERATURE_DELTA,
+    TEMPERATURE_THRESHOLD,
+)
+from tapo_local.adapter import PlugAdapter, SensorAdapter
 from util import is_temperature_above_threshold, is_temperature_below_threshold
 
 logger = get_logger(__name__)
@@ -13,7 +19,7 @@ TEMP_CACHE_TTL_SECONDS = 60 * 30
 
 
 async def init():
-    await PlugAdapter().turn_off()
+    await PlugAdapter(TAPO_PLUG_IP).turn_off()
 
 
 async def control():
@@ -28,12 +34,13 @@ async def control():
     while True:
         # Create a new smart plug adapter each time. #techdebt
         # TODO: Maybe fix in the future. See #24 for more info.
-        plug_adapter = PlugAdapter()
+        plug_adapter = PlugAdapter(TAPO_PLUG_IP)
+        sensor_adapter = SensorAdapter(TAPO_HUB_IP)
         logger.info("Checking threshold temperature.")
         now = time.time()
         current_temp = None
         try:
-            current_temp = weather_adapter.get_current_temp()
+            current_temp = await weather_adapter.get_current_temp()
             temp_cache["temp"] = current_temp
             temp_cache["timestamp"] = now
             first_fetch_failure_timestamp = None

@@ -1,6 +1,9 @@
 import logging
+from abc import ABC, abstractmethod
 
 from tapo import ApiClient
+
+from openweathermap.adapter import WeatherInterface
 from tenacity import after_log, before_log, retry, stop_after_attempt, wait_exponential
 
 from logger import get_logger
@@ -8,14 +11,18 @@ from settings import TAPO_EMAIL, TAPO_PASSWORD, TAPO_PLUG_IP
 
 logger = get_logger(__name__)
 
-
-class PlugAdapter:
+class TapoDevice(ABC):
     def __init__(self):
         self._ip = TAPO_PLUG_IP
         self._api_client = ApiClient(TAPO_EMAIL, TAPO_PASSWORD)
         self._device = None
         self._state = False
 
+    @abstractmethod
+    async def _init_device(self):
+        pass
+
+class PlugAdapter(TapoDevice):
     @retry(
         stop=stop_after_attempt(10),
         wait=wait_exponential(multiplier=1, min=30, max=180),
@@ -85,3 +92,35 @@ class PlugAdapter:
                     logger.info(f"Device '{info.nickname}' remains to be OFF")
         except Exception as e:
             logger.error(f"Failed to interact with device: {str(e)}")
+
+
+class HubAdapter(TapoDevice, WeatherInterface):
+    @retry(
+        stop=stop_after_attempt(10),
+        wait=wait_exponential(multiplier=1, min=30, max=180),
+        before=before_log(logger, logging.INFO),
+        after=after_log(logger, logging.ERROR),
+        reraise=True,
+    )
+    async def _init_device(self):
+        try:
+            logger.info(f"🔌 Connecting to hub device at {self._ip}")
+            hub = _device = await self._api_client.h100(self._ip)
+            self._device = hub.t310()
+            logger.info("Connected to smart plug device")
+        except Exception as e:
+            logger.error(f"Failed to connect to smart plug device: {str(e)}")
+            raise
+
+    @retry(
+        stop=stop_after_attempt(10),
+        wait=wait_exponential(multiplier=1, min=30, max=180),
+        before=before_log(logger, logging.INFO),
+        after=after_log(logger, logging.ERROR),
+        reraise=True,
+    )
+    async def get_current_temp(self):
+        records = await self._device.get_temperature_humidity_records()
+        # latest reading
+        latest = records.records[-1]
+        return latest.temperature
