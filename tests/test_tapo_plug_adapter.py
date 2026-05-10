@@ -11,6 +11,10 @@ FAKE_SETTINGS.TAPO_PLUG_IP = "192.168.1.50"
 
 FAKE_TAPO = types.ModuleType("tapo")
 FAKE_TAPO.ApiClient = object
+FAKE_TAPO_RESPONSES = types.ModuleType("tapo.responses")
+FAKE_TAPO_RESPONSES.T31XResult = type("T31XResult", (), {})
+FAKE_WEATHER_MODULE = types.ModuleType("openweathermap.adapter")
+FAKE_WEATHER_MODULE.WeatherInterface = type("WeatherInterface", (), {})
 
 FAKE_TENACITY = types.ModuleType("tenacity")
 
@@ -39,11 +43,13 @@ with patch.dict(
     {
         "settings": FAKE_SETTINGS,
         "tapo": FAKE_TAPO,
+        "tapo.responses": FAKE_TAPO_RESPONSES,
+        "openweathermap.adapter": FAKE_WEATHER_MODULE,
         "tenacity": FAKE_TENACITY,
     },
 ):
-    sys.modules.pop("tapo_plug_adapter.tapo_plug_adapter", None)
-    plug_module = importlib.import_module("tapo_plug_adapter.tapo_plug_adapter")
+    sys.modules.pop("tapo_local.adapter", None)
+    plug_module = importlib.import_module("tapo_local.adapter")
 
 
 class PlugAdapterTests(unittest.IsolatedAsyncioTestCase):
@@ -53,7 +59,7 @@ class PlugAdapterTests(unittest.IsolatedAsyncioTestCase):
         client.p110 = AsyncMock(return_value=device)
 
         with patch.object(plug_module, "ApiClient", return_value=client):
-            adapter = plug_module.PlugAdapter()
+            adapter = plug_module.PlugAdapter("192.168.1.50")
             await plug_module.PlugAdapter._init_device.__wrapped__(adapter)
 
         client.p110.assert_awaited_once_with("192.168.1.50")
@@ -61,7 +67,7 @@ class PlugAdapterTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_reset_device_callback_reinitializes_device(self):
         with patch.object(plug_module, "ApiClient", return_value=MagicMock()):
-            adapter = plug_module.PlugAdapter()
+            adapter = plug_module.PlugAdapter("192.168.1.50")
 
         adapter._init_device = AsyncMock()
         await adapter._reset_device_callback(retry_state=MagicMock())
@@ -69,7 +75,7 @@ class PlugAdapterTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_turn_on_switches_device_when_currently_off(self):
         with patch.object(plug_module, "ApiClient", return_value=MagicMock()):
-            adapter = plug_module.PlugAdapter()
+            adapter = plug_module.PlugAdapter("192.168.1.50")
 
         device = MagicMock()
         device.get_device_info = AsyncMock(
@@ -85,7 +91,7 @@ class PlugAdapterTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_turn_on_does_not_switch_when_already_on(self):
         with patch.object(plug_module, "ApiClient", return_value=MagicMock()):
-            adapter = plug_module.PlugAdapter()
+            adapter = plug_module.PlugAdapter("192.168.1.50")
 
         device = MagicMock()
         device.get_device_info = AsyncMock(
@@ -100,7 +106,7 @@ class PlugAdapterTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_turn_off_switches_device_when_currently_on(self):
         with patch.object(plug_module, "ApiClient", return_value=MagicMock()):
-            adapter = plug_module.PlugAdapter()
+            adapter = plug_module.PlugAdapter("192.168.1.50")
 
         device = MagicMock()
         device.get_device_info = AsyncMock(
@@ -117,7 +123,7 @@ class PlugAdapterTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_turn_off_does_not_switch_when_already_off(self):
         with patch.object(plug_module, "ApiClient", return_value=MagicMock()):
-            adapter = plug_module.PlugAdapter()
+            adapter = plug_module.PlugAdapter("192.168.1.50")
 
         device = MagicMock()
         device.get_device_info = AsyncMock(

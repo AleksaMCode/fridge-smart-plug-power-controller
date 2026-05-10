@@ -8,19 +8,35 @@ FAKE_SETTINGS = types.ModuleType("settings")
 FAKE_SETTINGS.CONTROLLER_TIMEOUT = 1
 FAKE_SETTINGS.TEMPERATURE_THRESHOLD = 5.0
 FAKE_SETTINGS.TEMPERATURE_DELTA = 2.0
+FAKE_SETTINGS.TAPO_PLUG_IP = "192.168.1.50"
+FAKE_SETTINGS.TAPO_HUB_IP = "192.168.1.60"
 
-FAKE_WEATHER_MODULE = types.ModuleType("openweathermap_adapter.weather_adapter")
+FAKE_WEATHER_MODULE = types.ModuleType("openweathermap.adapter")
 FAKE_WEATHER_MODULE.WeatherAdapter = object
 
-FAKE_PLUG_MODULE = types.ModuleType("tapo_plug_adapter.tapo_plug_adapter")
+FAKE_PLUG_MODULE = types.ModuleType("tapo_local.adapter")
 FAKE_PLUG_MODULE.PlugAdapter = object
+
+
+class _FakeSensorAdapter:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def _init_device(self):
+        return None
+
+    async def get_current_temp(self):
+        return 6.0
+
+
+FAKE_PLUG_MODULE.SensorAdapter = _FakeSensorAdapter
 
 with patch.dict(
     sys.modules,
     {
         "settings": FAKE_SETTINGS,
-        "openweathermap_adapter.weather_adapter": FAKE_WEATHER_MODULE,
-        "tapo_plug_adapter.tapo_plug_adapter": FAKE_PLUG_MODULE,
+        "openweathermap.adapter": FAKE_WEATHER_MODULE,
+        "tapo_local.adapter": FAKE_PLUG_MODULE,
     },
 ):
     sys.modules.pop("controller", None)
@@ -46,7 +62,7 @@ class ControllerFlowTests(unittest.IsolatedAsyncioTestCase):
         loop_adapter.turn_off = AsyncMock()
 
         weather_adapter = MagicMock()
-        weather_adapter.get_current_temp.return_value = 7.0
+        weather_adapter.get_current_temp = AsyncMock(return_value=7.0)
 
         with patch.object(
             controller, "PlugAdapter", side_effect=[init_adapter, loop_adapter]
@@ -70,7 +86,7 @@ class ControllerFlowTests(unittest.IsolatedAsyncioTestCase):
         loop_adapter.turn_off = AsyncMock()
 
         weather_adapter = MagicMock()
-        weather_adapter.get_current_temp.return_value = 2.5
+        weather_adapter.get_current_temp = AsyncMock(return_value=2.5)
 
         with patch.object(
             controller, "PlugAdapter", side_effect=[init_adapter, loop_adapter]
@@ -94,7 +110,7 @@ class ControllerFlowTests(unittest.IsolatedAsyncioTestCase):
         loop_adapter.turn_off = AsyncMock()
 
         weather_adapter = MagicMock()
-        weather_adapter.get_current_temp.return_value = 4.0
+        weather_adapter.get_current_temp = AsyncMock(return_value=4.0)
 
         with patch.object(
             controller, "PlugAdapter", side_effect=[init_adapter, loop_adapter]
@@ -124,7 +140,9 @@ class ControllerFlowTests(unittest.IsolatedAsyncioTestCase):
         second_loop_adapter.turn_off = AsyncMock()
 
         weather_adapter = MagicMock()
-        weather_adapter.get_current_temp.side_effect = [7.0, RuntimeError("OWM down")]
+        weather_adapter.get_current_temp = AsyncMock(
+            side_effect=[7.0, RuntimeError("OWM down")]
+        )
 
         with patch.object(
             controller,
@@ -159,10 +177,9 @@ class ControllerFlowTests(unittest.IsolatedAsyncioTestCase):
         second_loop_adapter.turn_off = AsyncMock()
 
         weather_adapter = MagicMock()
-        weather_adapter.get_current_temp.side_effect = [
-            RuntimeError("OWM down"),
-            RuntimeError("OWM still down"),
-        ]
+        weather_adapter.get_current_temp = AsyncMock(
+            side_effect=[RuntimeError("OWM down"), RuntimeError("OWM still down")]
+        )
 
         with patch.object(
             controller,
