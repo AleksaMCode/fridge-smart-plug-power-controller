@@ -18,7 +18,12 @@ I keep a fridge on my terrace for weekly meal prep, but standard fridges aren't 
 
 ## The Solution
 
-This service connects to a **Tapo smart plug** ([P110](https://www.tapo.com/en/product/smart-plug/tapo-p110/)) and monitors outdoor temperature via the [**OpenWeatherMap API**](https://openweathermap.org/api). When the temperature rises above a safe threshold, it turns the fridge on. When it drops back below the threshold, it turns the fridge off. The fridge runs only when needed, reducing the risk of damage even though I’m operating it under suboptimal conditions (around $5 \degree \text{C}$).
+This service connects to a **Tapo smart plug** ([P110](https://www.tapo.com/en/product/smart-plug/tapo-p110/)) and monitors outdoor temperature via either:
+
+- Local **[Tapo T310](https://www.tp-link.com/us/smart-home/smart-sensor/tapo-t310/)** temperature sensor through **[Tapo H100](https://www.tp-link.com/us/home-networking/smart-hub/tapo-h100/)** hub, or
+- [**OpenWeatherMap API**](https://openweathermap.org/api).
+
+When the temperature rises above a safe threshold, it turns the fridge on. When it drops back below the threshold, it turns the fridge off. The fridge runs only when needed, reducing the risk of damage even though I’m operating it under suboptimal conditions (around $5 \degree \text{C}$).
 
 ### How It Works
 
@@ -27,12 +32,6 @@ This service connects to a **Tapo smart plug** ([P110](https://www.tapo.com/en/p
 - **Temperature in between** ($3–5 \degree \text{C}$ by default) → **idle**, no change (prevents rapid switching)
 
 A configurable hysteresis (`TEMPERATURE_DELTA`) avoids rapid on/off cycling when the temperature hovers near the threshold.
-
-## Requirements
-
-- Python 3.13
-- A **Tapo P110** smart plug (or compatible Tapo device)
-- An **OpenWeatherMap** API key (free tier available)
 
 ## Installation
 
@@ -55,21 +54,6 @@ A configurable hysteresis (`TEMPERATURE_DELTA`) avoids rapid on/off cycling when
    ```
    Edit `settings.py` with your credentials and preferences.
 
-## Configuration
-
-Edit `settings.py` with your own values:
-
-| Variable | Description |
-|----------|-------------|
-| `TAPO_EMAIL` | Your Tapo account email |
-| `TAPO_PASSWORD` | Your Tapo account password |
-| `TAPO_PLUG_IP` | Local static IP address of the smart plug |
-| `OWM_API_KEY` | Your OpenWeatherMap API key |
-| `OWM_LOCATION` | Location string for weather (e.g. `"Paris, FR"`) |
-| `TEMPERATURE_THRESHOLD` | Temperature ($\degree \text{C}$) above which fridge turns on (default: $5.0$) |
-| `TEMPERATURE_DELTA` | Hysteresis in $\degree \text{C}$; fridge turns off when $temp ≤ threshold - delta$ (default: $2.0$) |
-| `CONTROLLER_TIMEOUT` | Seconds between temperature checks (default: $600$ = $10$ minutes) |
-
 ## Usage
 
 Run the controller:
@@ -84,7 +68,7 @@ Or use the provided script:
 ./start_controller.sh
 ```
 
-The service runs continuously, checking the weather every $10$ minutes and adjusting the plug state accordingly. Logs are written to `logs/fsppc-info.log` and to the console.
+The service runs continuously, checking temperature every $10$ minutes and adjusting the plug state accordingly. Logs are written to `logs/fsppc-info.log` and to the console.
 
 ## Running on System Startup (Cron)
 
