@@ -3,9 +3,16 @@ import time
 from typing import Optional
 
 from logger import get_logger
-from openweathermap_adapter.weather_adapter import WeatherAdapter
-from settings import CONTROLLER_TIMEOUT, TEMPERATURE_DELTA, TEMPERATURE_THRESHOLD
-from tapo_plug_adapter.tapo_plug_adapter import PlugAdapter
+from openweathermap.adapter import WeatherAdapter
+from settings import (
+    CONTROLLER_TIMEOUT,
+    TAPO_HUB_IP,
+    TAPO_PLUG_IP,
+    TEMPERATURE_DELTA,
+    TEMPERATURE_THRESHOLD,
+    USE_TEMP_SENSOR,
+)
+from tapo_local.adapter import PlugAdapter, SensorAdapter
 from util import is_temperature_above_threshold, is_temperature_below_threshold
 
 logger = get_logger(__name__)
@@ -13,7 +20,25 @@ TEMP_CACHE_TTL_SECONDS = 60 * 30
 
 
 async def init():
-    await PlugAdapter().turn_off()
+    await PlugAdapter(TAPO_PLUG_IP).turn_off()
+
+
+async def fetch_temperature(
+    weather_adapter: WeatherAdapter, sensor_adapter: SensorAdapter
+) -> float:
+    if not USE_TEMP_SENSOR:
+        logger.info("Using OWM temperature source.")
+        return await weather_adapter.get_current_temp()
+
+    try:
+        temp = await sensor_adapter.get_current_temp()
+        logger.info("Using hub sensor temperature source.")
+        return temp
+    except Exception as sensor_error:
+        logger.warning(
+            f"Failed to fetch temperature from hub sensor, falling back to OWM: {str(sensor_error)}"
+        )
+        return await weather_adapter.get_current_temp()
 
 
 async def control():
@@ -28,12 +53,13 @@ async def control():
     while True:
         # Create a new smart plug adapter each time. #techdebt
         # TODO: Maybe fix in the future. See #24 for more info.
-        plug_adapter = PlugAdapter()
+        plug_adapter = PlugAdapter(TAPO_PLUG_IP)
+        sensor_adapter = SensorAdapter(TAPO_HUB_IP)
         logger.info("Checking threshold temperature.")
         now = time.time()
         current_temp = None
         try:
-            current_temp = weather_adapter.get_current_temp()
+            current_temp = await fetch_temperature(weather_adapter, sensor_adapter)
             temp_cache["temp"] = current_temp
             temp_cache["timestamp"] = now
             first_fetch_failure_timestamp = None
@@ -79,6 +105,9 @@ async def control():
                 f"Controller is in an idle state. The temperature is between {TEMPERATURE_THRESHOLD - TEMPERATURE_DELTA} °C and {TEMPERATURE_THRESHOLD} °C"
             )
 
+        logger.info(
+            f"Service will check temperature again in {CONTROLLER_TIMEOUT} minutes."
+        )
         time.sleep(CONTROLLER_TIMEOUT)
 
 

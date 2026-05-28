@@ -48,12 +48,12 @@ with patch.dict(
         "tenacity": FAKE_TENACITY,
     },
 ):
-    sys.modules.pop("openweathermap_adapter.weather_adapter", None)
-    weather_module = importlib.import_module("openweathermap_adapter.weather_adapter")
+    sys.modules.pop("openweathermap.adapter", None)
+    weather_module = importlib.import_module("openweathermap.adapter")
 
 
-class WeatherAdapterTests(unittest.TestCase):
-    def test_get_current_temp_returns_temperature_from_owm(self):
+class WeatherAdapterTests(unittest.IsolatedAsyncioTestCase):
+    async def test_get_current_temp_returns_temperature_from_owm(self):
         manager = MagicMock()
         weather = MagicMock()
         weather.temperature.return_value = {"temp": 6.8}
@@ -64,15 +64,17 @@ class WeatherAdapterTests(unittest.TestCase):
 
         with patch.object(weather_module, "OWM", return_value=owm_client):
             adapter = weather_module.WeatherAdapter()
-            current_temp = weather_module.WeatherAdapter.get_current_temp.__wrapped__(
-                adapter
+            current_temp = (
+                await weather_module.WeatherAdapter.get_current_temp.__wrapped__(
+                    adapter
+                )
             )
 
         self.assertEqual(current_temp, 6.8)
         manager.weather_at_place.assert_called_once_with("Paris, FR")
         weather.temperature.assert_called_once_with("celsius")
 
-    def test_get_current_temp_raises_not_found_error(self):
+    async def test_get_current_temp_raises_not_found_error(self):
         manager = MagicMock()
         manager.weather_at_place.side_effect = weather_module.exceptions.NotFoundError(
             "City not found"
@@ -84,9 +86,11 @@ class WeatherAdapterTests(unittest.TestCase):
         with patch.object(weather_module, "OWM", return_value=owm_client):
             adapter = weather_module.WeatherAdapter()
             with self.assertRaises(weather_module.exceptions.NotFoundError):
-                weather_module.WeatherAdapter.get_current_temp.__wrapped__(adapter)
+                await weather_module.WeatherAdapter.get_current_temp.__wrapped__(
+                    adapter
+                )
 
-    def test_get_current_temp_raises_generic_error(self):
+    async def test_get_current_temp_raises_generic_error(self):
         manager = MagicMock()
         manager.weather_at_place.side_effect = RuntimeError("Temporary API issue")
 
@@ -96,7 +100,9 @@ class WeatherAdapterTests(unittest.TestCase):
         with patch.object(weather_module, "OWM", return_value=owm_client):
             adapter = weather_module.WeatherAdapter()
             with self.assertRaises(RuntimeError):
-                weather_module.WeatherAdapter.get_current_temp.__wrapped__(adapter)
+                await weather_module.WeatherAdapter.get_current_temp.__wrapped__(
+                    adapter
+                )
 
 
 if __name__ == "__main__":

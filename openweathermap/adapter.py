@@ -1,4 +1,5 @@
 import logging
+from abc import ABC, abstractmethod
 
 from pyowm import OWM
 from pyowm.commons import exceptions
@@ -10,7 +11,13 @@ from settings import OWM_API_KEY, OWM_LOCATION
 logger = get_logger(__name__)
 
 
-class WeatherAdapter:
+class WeatherInterface(ABC):
+    @abstractmethod
+    async def get_current_temp(self):
+        pass
+
+
+class WeatherAdapter(WeatherInterface):
     def __init__(self):
         self._owm = OWM(OWM_API_KEY)
         self._manager = self._owm.weather_manager()
@@ -22,7 +29,7 @@ class WeatherAdapter:
         after=after_log(logger, logging.ERROR),
         reraise=True,
     )
-    def get_current_temp(self):
+    async def get_current_temp(self):
         logger.info("🌡️ Fetching current temperature from OWM API.")
         try:
             current_weather = self._manager.weather_at_place(OWM_LOCATION).weather
