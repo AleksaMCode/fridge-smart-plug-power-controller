@@ -8,6 +8,7 @@ FAKE_SETTINGS = types.ModuleType("settings")
 FAKE_SETTINGS.TAPO_EMAIL = "test@example.com"
 FAKE_SETTINGS.TAPO_PASSWORD = "secret"
 FAKE_SETTINGS.TAPO_PLUG_IP = "192.168.1.50"
+FAKE_SETTINGS.TAPO_TEMP_SENSOR_ID = "sensor-id"
 
 FAKE_TAPO = types.ModuleType("tapo")
 FAKE_TAPO.ApiClient = object
