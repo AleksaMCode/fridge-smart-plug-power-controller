@@ -126,6 +126,74 @@ class ControllerFlowTests(unittest.IsolatedAsyncioTestCase):
         loop_adapter.turn_off.assert_not_awaited()
         loop_adapter.turn_on.assert_not_awaited()
 
+    async def test_control_uses_sensor_temperature_when_flag_is_enabled(self):
+        init_adapter = MagicMock()
+        init_adapter.turn_off = AsyncMock()
+
+        loop_adapter = MagicMock()
+        loop_adapter.turn_on = AsyncMock()
+        loop_adapter.turn_off = AsyncMock()
+
+        sensor_adapter = MagicMock()
+        sensor_adapter.get_current_temp = AsyncMock(return_value=7.0)
+
+        weather_adapter = MagicMock()
+        weather_adapter.get_current_temp = AsyncMock(return_value=2.0)
+
+        with patch.object(
+            controller, "PlugAdapter", side_effect=[init_adapter, loop_adapter]
+        ), patch.object(
+            controller, "SensorAdapter", return_value=sensor_adapter
+        ), patch.object(
+            controller, "WeatherAdapter", return_value=weather_adapter
+        ), patch.object(
+            controller, "USE_TEMP_SENSOR", True
+        ), patch.object(
+            controller.time, "sleep", side_effect=RuntimeError("stop loop")
+        ):
+            with self.assertRaises(RuntimeError):
+                await controller.control()
+
+        sensor_adapter.get_current_temp.assert_awaited_once()
+        weather_adapter.get_current_temp.assert_not_awaited()
+        loop_adapter.turn_on.assert_awaited_once()
+        loop_adapter.turn_off.assert_not_awaited()
+
+    async def test_control_falls_back_to_weather_when_sensor_fetch_fails(self):
+        init_adapter = MagicMock()
+        init_adapter.turn_off = AsyncMock()
+
+        loop_adapter = MagicMock()
+        loop_adapter.turn_on = AsyncMock()
+        loop_adapter.turn_off = AsyncMock()
+
+        sensor_adapter = MagicMock()
+        sensor_adapter.get_current_temp = AsyncMock(
+            side_effect=RuntimeError("sensor down")
+        )
+
+        weather_adapter = MagicMock()
+        weather_adapter.get_current_temp = AsyncMock(return_value=7.0)
+
+        with patch.object(
+            controller, "PlugAdapter", side_effect=[init_adapter, loop_adapter]
+        ), patch.object(
+            controller, "SensorAdapter", return_value=sensor_adapter
+        ), patch.object(
+            controller, "WeatherAdapter", return_value=weather_adapter
+        ), patch.object(
+            controller, "USE_TEMP_SENSOR", True
+        ), patch.object(
+            controller.time, "sleep", side_effect=RuntimeError("stop loop")
+        ):
+            with self.assertRaises(RuntimeError):
+                await controller.control()
+
+        sensor_adapter.get_current_temp.assert_awaited_once()
+        weather_adapter.get_current_temp.assert_awaited_once()
+        loop_adapter.turn_on.assert_awaited_once()
+        loop_adapter.turn_off.assert_not_awaited()
+
     async def test_control_uses_cached_temperature_when_fetch_fails_and_cache_is_fresh(
         self,
     ):
