@@ -2,12 +2,11 @@ import logging
 from abc import ABC, abstractmethod
 
 from tapo import ApiClient
-from tapo.responses import T31XResult
 from tenacity import after_log, before_log, retry, stop_after_attempt, wait_exponential
 
 from logger import get_logger
 from openweathermap.adapter import WeatherInterface
-from settings import TAPO_EMAIL, TAPO_PASSWORD
+from settings import TAPO_EMAIL, TAPO_PASSWORD, TAPO_TEMP_SENSOR_ID
 
 logger = get_logger(__name__)
 
@@ -108,19 +107,8 @@ class SensorAdapter(TapoDevice, WeatherInterface):
         try:
             logger.info(f"🔌 Connecting to hub device at {self._ip}")
             hub = await self._api_client.h100(self._ip)
-            # info = await hub.get_device_info()
-            # This doesn't seem to work:
-            self._device = await hub.t31x()
-            # Alternative approach:
-            logger.info(f"🔌 Connecting to temp. sensor device at {self._ip}")
-            child_device_list = await hub.get_child_device_list()
-            for child in child_device_list:
-                if isinstance(child, T31XResult):
-                    self._device = await hub.t31x(device_id=child.device_id)
-                    logger.info("Connected to temp. sensor device")
-            raise Exception(
-                "Failed to connect to temp. sensor device - no sensor children in the H100 hub."
-            )
+            logger.info(f"🔌 Connecting to temp. sensor device at using its ID.")
+            self._device = await hub.t31x(device_id=TAPO_TEMP_SENSOR_ID)
         except Exception as e:
             logger.error(f"Failed to connect to temp. sensor device: {str(e)}")
             raise
@@ -132,11 +120,15 @@ class SensorAdapter(TapoDevice, WeatherInterface):
         after=after_log(logger, logging.ERROR),
         reraise=True,
     )
-    async def get_current_temp(self):
+    async def get_current_temp(self) -> float:
         if not self._device:
             await self._init_device()
 
+        logger.info("🌡️ Fetching current temperature from Tapo Sensor T310.")
         records = await self._device.get_temperature_humidity_records()
         # latest reading
         latest = records.records[-1]
-        return latest.temperature
+        current_temp = round(latest.temperature, 2)
+        logger.info(f"Current temperature: {current_temp} °C")
+
+        return current_temp
