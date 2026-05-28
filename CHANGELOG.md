@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 - Added an additional temperature source using Tapo `T310` sensor through Tapo `H100` hub as an alternative to the existing OpenWeatherMap (OWM) API temperature check.
 - Temperature source selection now respects `USE_TEMP_SENSOR` from settings:
   - `True` -> read from Tapo `T310` sensor (via `H100` hub)
-  - `False` -> use existing OWM API source (`weather_adapter.get_current_temp()`)
+  - `False` -> use existing OWM API source
 - Added fallback logic: if Tapo sensor read fails while `USE_TEMP_SENSOR` is enabled, controller falls back to the OWM API temperature.
 
 ## [0.2.1] - 2026-02-28
