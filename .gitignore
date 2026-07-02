@@ -1,6 +1,9 @@
 # Log files
 *.log*
 
+# Excalidraw files
+*.excalidraw
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
