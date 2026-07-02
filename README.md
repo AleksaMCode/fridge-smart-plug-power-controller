@@ -12,6 +12,19 @@
 
 A Python microservice that automatically controls an outdoor fridge based on ambient temperature. It turns the fridge ON when it's warm enough to need cooling, and turns it OFF when it's too cold; protecting both the appliance and the food inside.
 
+<p align="center">
+<img
+src="./resources/controller.svg?raw=true"
+alt="Controller overview"
+width="70%"
+class="center"
+/>
+<p align="center">
+    <label><b>Fig. 1</b>: Controller <code>0.3.0</code> system overview</label>
+    </p>
+</p>
+
+
 ## The Problem
 
 I keep a fridge on my terrace for weekly meal prep, but standard fridges aren't designed to operate in temperatures below $10 \degree \text{C}$. During winter, outdoor temperatures fluctuate: leaving the fridge off risks food spoilage when daytime temperatures rise above $10 \degree \text{C}$, while leaving it on in very cold conditions could damage the compressor and other components.
@@ -27,11 +40,14 @@ When the temperature rises above a safe threshold, it turns the fridge on. When 
 
 ### How It Works
 
-- **Temperature above threshold** (default: $≥5 \degree \text{C}$) → plug turns **on**, fridge runs
-- **Temperature below threshold - delta** (default: $≤3 \degree \text{C}$) → plug turns **off**, fridge stops
-- **Temperature in between** ($3–5 \degree \text{C}$ by default) → **idle**, no change (prevents rapid switching)
+| Description | Default Temperature | Action |
+|---|---|---|
+| Temperature above threshold | $≥5 \degree \text{C}$ | Plug turns **ON** (fridge runs) |
+| Temperature below threshold - delta | $≤3 \degree \text{C}$ | Plug turns **OFF** (fridge stops) |
+| Temperature in between (hysteresis window) | $3–5 \degree \text{C}$ | **Idle** (no change, prevents rapid switching) |
 
-A configurable hysteresis (`TEMPERATURE_DELTA`) avoids rapid on/off cycling when the temperature hovers near the threshold.
+> [!NOTE] 
+> A configurable hysteresis (`TEMPERATURE_DELTA`) avoids rapid on/off cycling when the temperature hovers near the threshold.
 
 ## Installation
 
@@ -91,6 +107,6 @@ To run the controller automatically when the system boots, add a cron job using 
 
    The controller must be started from the project directory so the virtual environment and `settings.py` are found. The trailing `&` runs it in the background so cron does not block. Output is appended to `logs/cron.log` for debugging.
 
-> [!NOTE]
+> [!TIP]
 >
 > The controller will start once at boot and keep running. If you prefer automatic restarts on failure, consider a systemd service or process manager like `supervisord` instead.
