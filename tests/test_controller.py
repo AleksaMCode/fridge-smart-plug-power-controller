@@ -40,8 +40,8 @@ with patch.dict(
         "tapo_local.adapter": FAKE_PLUG_MODULE,
     },
 ):
-    sys.modules.pop("controller", None)
-    controller = importlib.import_module("controller")
+    sys.modules.pop("main", None)
+    controller = importlib.import_module("main")
 
 
 class ControllerFlowTests(unittest.IsolatedAsyncioTestCase):

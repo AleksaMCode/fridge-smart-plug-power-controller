@@ -64,49 +64,28 @@ When the temperature rises above a safe threshold, it turns the fridge on. When 
    pip install -r requirements.txt
    ```
 
-3. Copy the settings template and configure:
+3. Copy the environment template and configure:
    ```bash
-   cp settings.template settings.py
+   cp .env.template .env
    ```
-   Edit `settings.py` with your credentials and preferences.
+   Edit `.env` with your credentials and preferences.
 
 ## Usage
 
 Run the controller:
 
 ```bash
-python controller.py
+python main.py
 ```
 
-Or use the provided script:
+The service runs continuously, checking temperature every N minutes and adjusting the plug state accordingly. Logs are written to `logs/fsppc-info.log` and to the console.
+
+## Docker Deployment
+
+Run the service with Docker Compose:
 
 ```bash
-./start_controller.sh
+docker compose up -d --build
 ```
 
-The service runs continuously, checking temperature every $10$ minutes and adjusting the plug state accordingly. Logs are written to `logs/fsppc-info.log` and to the console.
-
-## Running on System Startup (Cron)
-
-To run the controller automatically when the system boots, add a cron job using `@reboot`:
-
-1. Make the script executable (if not already):
-   ```bash
-   chmod +x start_controller.sh
-   ```
-
-2. Open the crontab for the user that will run the controller:
-   ```bash
-   crontab -e
-   ```
-
-3. Add this line (replace `/path/to/fridge-smart-plug-power-controller` with your actual project path):
-   ```
-   @reboot cd /path/to/fridge-smart-plug-power-controller && ./start_controller.sh >> logs/cron.log 2>&1 &
-   ```
-
-   The controller must be started from the project directory so the virtual environment and `settings.py` are found. The trailing `&` runs it in the background so cron does not block. Output is appended to `logs/cron.log` for debugging.
-
-> [!TIP]
->
-> The controller will start once at boot and keep running. If you prefer automatic restarts on failure, consider a systemd service or process manager like `supervisord` instead.
+The compose setup expects a local `.env` file in the project root.

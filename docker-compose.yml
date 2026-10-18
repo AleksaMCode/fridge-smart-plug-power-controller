@@ -1,0 +1,9 @@
+services:
+  fridge-controller:
+    build: .
+    container_name: fridge-smart-plug-controller
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
